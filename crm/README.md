@@ -1,163 +1,138 @@
-# CRM GraphQL API Project
+# CRM Celery Weekly Report Setup
 
-A Django-based CRM system with GraphQL API, Celery for async tasks, and
-cron jobs for scheduled operations.
+This project configures **Celery** with **Celery Beat** to automatically
+generate a weekly CRM report using GraphQL.
 
-## Features
+The report summarizes: - Total number of customers - Total number of
+orders - Total revenue
 
--   GraphQL API with graphene-django
--   Async task processing with Celery
--   Scheduled tasks with Celery Beat
--   Cron jobs for periodic maintenance
--   SQLite database (configurable for production)
+The report is logged to:
 
-## Prerequisites
+/tmp/crm_report_log.txt
 
--   Python 3.8+
--   Redis Server (for Celery)
--   pip (Python package manager)
--   virtualenv (recommended)
+Format:
 
-## Installation Steps
+YYYY-MM-DD HH:MM:SS - Report: X customers, Y orders, Z revenue
 
-### Clone the Repository
+------------------------------------------------------------------------
 
-``` bash
-git clone <your-repository-url>
-cd <project-directory>
-```
+## Install Requirements
 
-### Create and Activate Virtual Environment
+Make sure Redis is installed and running.
+
+### Install Redis (Ubuntu)
 
 ``` bash
-python -m venv venv
+sudo apt update
+sudo apt install redis-server
+sudo systemctl enable redis
+sudo systemctl start redis
 ```
 
-**Windows:**
+Verify Redis is running:
 
 ``` bash
-venv\Scripts\activate
+redis-cli ping
 ```
 
-**macOS/Linux:**
+Expected output:
 
-``` bash
-source venv/bin/activate
-```
+    PONG
 
-### Install Dependencies
+------------------------------------------------------------------------
+
+### Install Python Dependencies
+
+From the project root directory:
 
 ``` bash
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` doesn't exist:
+Make sure the following packages are included in `requirements.txt`:
 
-    Django>=4.2.0
-    graphene-django>=3.0.0
-    django-filter>=23.0
-    django-crontab>=0.7.1
-    celery>=5.3.0
-    redis>=5.0.0
-    django-celery-beat>=2.5.0
-    python-dotenv>=1.0.0
-
-## Environment Configuration
-
-Create a `.env` file in the project root:
-
-    SECRET_KEY=your-secret-key-here-change-in-production
-    DEBUG=True
-    ALLOWED_HOSTS=localhost,127.0.0.1
-    REDIS_URL=redis://localhost:6379/0
-
-## Database Setup
-
-``` bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py createsuperuser  # optional
-```
-
-## Running the Services
-
-### Start Celery Worker
-
-``` bash
-celery -A crm worker --loglevel=info
-```
-
-### Start Celery Beat
-
-``` bash
-celery -A crm beat --loglevel=info
-```
-
-Or combined (development only):
-
-``` bash
-celery -A crm worker --beat --loglevel=info
-```
-
-### Start Django Server
-
-``` bash
-python manage.py runserver
-```
-
-Access: - http://localhost:8000 - http://localhost:8000/graphql
-
-## Example GraphQL Query
-
-``` graphql
-{
-  __schema {
-    types {
-      name
-    }
-  }
-}
-```
-
-## Useful Commands
-
-Clear Celery tasks:
-
-``` bash
-celery -A crm purge
-```
-
-Flush database:
-
-``` bash
-python manage.py flush
-```
-
-Create DB backup:
-
-``` bash
-python manage.py dumpdata > db_backup.json
-```
-
-Load DB backup:
-
-``` bash
-python manage.py loaddata db_backup.json
-```
-
-## Production Notes
-
-Set:
-
-    DEBUG = False
-    ALLOWED_HOSTS = ['your-domain.com']
-
-Use PostgreSQL for production.
-
-Enable security settings:
-
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    celery
+    django-celery-beat
+    redis
 
 ------------------------------------------------------------------------
+
+## Apply Database Migrations
+
+Run:
+
+``` bash
+python manage.py migrate
+```
+
+------------------------------------------------------------------------
+
+## Start Celery Worker
+
+``` bash
+celery -A crm worker -l info
+```
+
+------------------------------------------------------------------------
+
+## Start Celery Beat Scheduler
+
+In a new terminal window:
+
+``` bash
+celery -A crm beat -l info
+```
+
+Celery Beat will trigger the task every Monday at 6:00 AM.
+
+------------------------------------------------------------------------
+
+## Verify the Report Log
+
+``` bash
+cat /tmp/crm_report_log.txt
+```
+
+Example output:
+
+    2026-02-15 06:00:00 - Report: 120 customers, 350 orders, 54000 revenue
+
+------------------------------------------------------------------------
+
+## Optional: Manually Trigger the Task
+
+``` bash
+python manage.py shell
+```
+
+``` python
+from crm.tasks import generate_crm_report
+generate_crm_report.delay()
+```
+
+Then check:
+
+``` bash
+cat /tmp/crm_report_log.txt
+```
+
+------------------------------------------------------------------------
+
+## How It Works
+
+-   Celery connects to Redis as the message broker.
+-   Celery Beat schedules the weekly task.
+-   The task executes a GraphQL query internally.
+-   Results are written to `/tmp/crm_report_log.txt`.
+
+------------------------------------------------------------------------
+
+## Summary
+
+You have successfully configured:
+
+-   Celery
+-   Redis broker
+-   Celery Beat scheduler
+-   Weekly CRM report generation
+-   Automated logging
