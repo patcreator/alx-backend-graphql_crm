@@ -1,5 +1,5 @@
 import graphene
-import crm.schema
+from crm.schema import Query
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField  # Add this import
 from django.db import transaction
