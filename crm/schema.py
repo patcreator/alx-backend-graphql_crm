@@ -1,7 +1,7 @@
 import graphene
 from crm.schema import Query
 from graphene_django import DjangoObjectType
-from graphene_django.filter import DjangoFilterConnectionField  # Add this import
+from graphene_django.filter import DjangoFilterConnectionField
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from decimal import Decimal
@@ -179,6 +179,38 @@ class CreateOrder(graphene.Mutation):
         except Exception as e:
             raise Exception(f"Error creating order: {str(e)}")
 
+# New Mutation: UpdateLowStockProducts
+class UpdateLowStockProducts(graphene.Mutation):
+    class Arguments:
+        threshold = graphene.Int(default_value=10)
+        increment_by = graphene.Int(default_value=10)
+    
+    success = graphene.Boolean()
+    message = graphene.String()
+    updated_products = graphene.List(ProductType)
+    count = graphene.Int()
+    
+    def mutate(self, info, threshold=10, increment_by=10):
+        # Find products with stock less than threshold
+        low_stock_products = Product.objects.filter(stock__lt=threshold)
+        updated_products_list = []
+        
+        for product in low_stock_products:
+            # Increment stock by specified amount
+            product.stock += increment_by
+            product.save()
+            updated_products_list.append(product)
+        
+        count = len(updated_products_list)
+        message = f"Successfully updated {count} low stock products (stock < {threshold}) by adding {increment_by} units each"
+        
+        return UpdateLowStockProducts(
+            success=True,
+            message=message,
+            updated_products=updated_products_list,
+            count=count
+        )
+
 # Filter Input Types
 class CustomerFilterInput(graphene.InputObjectType):
     name_icontains = graphene.String()
@@ -331,3 +363,4 @@ class Mutation(graphene.ObjectType):
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
+    update_low_stock_products = UpdateLowStockProducts.Field()
