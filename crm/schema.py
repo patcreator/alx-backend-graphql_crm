@@ -1,5 +1,6 @@
 import graphene
 from crm.schema import Query
+from crm.models import Product
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
 from django.db import transaction
