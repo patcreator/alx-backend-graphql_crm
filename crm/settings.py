@@ -7,8 +7,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'graphene_django',
-    'django_crontab',  # Add this
-    'crm',  # Your app name
+    'django_crontab',  
+    'django_celery_beat',  
+    'crm', 
 ]
 
 # Add cron jobs configuration

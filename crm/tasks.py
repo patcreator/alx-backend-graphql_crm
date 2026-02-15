@@ -1,5 +1,6 @@
 import os
 import sys
+import requests
 from datetime import datetime
 from celery import shared_task
 from gql import gql, Client
