@@ -1,0 +1,22 @@
+databases:
+  - name: alx_db
+    plan: free
+    databaseName: alx_db
+    user: patcreator
+
+services:
+  - type: web
+    plan: free
+    name: alx-backend-graphql_crm
+    runtime: python
+    buildCommand: './build.sh'
+    startCommand: 'python -m gunicorn alx-backend-graphql_crm.asgi:application -k uvicorn.workers.UvicornWorker'
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alx_db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
